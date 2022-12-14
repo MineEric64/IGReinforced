@@ -24,6 +24,8 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -34,9 +36,34 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Composition.WindowsRuntimeHelpers_NETStd, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>DLLs\Composition.WindowsRuntimeHelpers_NETStd.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -55,6 +82,32 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Extensions\BitmapConverter.cs" />
+    <Compile Include="Extensions\ExceptionManager.cs" />
+    <Compile Include="Extensions\KeyManager.cs" />
+    <Compile Include="Extensions\NetworkManager.cs" />
+    <Compile Include="Extensions\Timestamp.cs" />
+    <Compile Include="Recording\Audio\Wasapi\WasapiCapture.cs" />
+    <Compile Include="Recording\Audio\Wasapi\WasapiPlay.cs" />
+    <Compile Include="Recording\Highlights\Highlight.cs" />
+    <Compile Include="Recording\Highlights\HighlightManager.cs" />
+    <Compile Include="Recording\Types\BitrateInfo.cs" />
+    <Compile Include="Recording\Types\Buffered.cs" />
+    <Compile Include="Recording\Types\EncodingType.cs" />
+    <Compile Include="Recording\Video\CaptureSupports.cs" />
+    <Compile Include="Recording\Video\FScreen.cs" />
+    <Compile Include="Recording\Types\CaptureVideoType.cs" />
+    <Compile Include="Recording\Types\GPUSelect.cs" />
+    <Compile Include="Recording\Video\NvEncoder\Encoder.cs" />
+    <Compile Include="Recording\Video\NvEncoder\Lib.cs" />
+    <Compile Include="Recording\Video\NvPipe\Decoder.cs" />
+    <Compile Include="Recording\Video\NvPipe\Encoder.cs" />
+    <Compile Include="Recording\Video\NvPipe\Lib.cs" />
+    <Compile Include="Recording\Video\WGC\MonitorEnumerationHelper.cs" />
+    <Compile Include="Recording\Video\Rescreen.cs" />
+    <Compile Include="Recording\Video\RescreenSettings.cs" />
+    <Compile Include="Recording\Video\WGC\WGCHelper.cs" />
+    <Compile Include="Toggle.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -67,6 +120,10 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="Themes\Generic.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -86,13 +143,104 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <Resource Include="Fonts\NotoSansKR-Black.otf" />
+    <Resource Include="Fonts\NotoSansKR-Bold.otf" />
+    <Resource Include="Fonts\NotoSansKR-Regular.otf" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <None Include="setlog.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="DLLs\Composition.WindowsRuntimeHelpers_NETStd.dll" />
+    <Resource Include="Resources\REINFORCED _alpha.png" />
+    <Resource Include="Resources\settings_89381.png" />
+    <Resource Include="Resources\soft-cloudy-gradient.jpg" />
+    <ContentWithTargetPath Include="DLLs\NvPipe.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>NvPipe.dll</TargetPath>
+    </ContentWithTargetPath>
+    <None Include="DLLs\NvPipe.dll" />
+    <ContentWithTargetPath Include="DLLs\uNvEncoder.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>uNvEncoder.dll</TargetPath>
+    </ContentWithTargetPath>
+    <None Include="DLLs\uNvEncoder.dll" />
+    <ContentWithTargetPath Include="DLLs\uNvPipe.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>uNvPipe.dll</TargetPath>
+    </ContentWithTargetPath>
+    <None Include="DLLs\uNvPipe.dll" />
+    <ContentWithTargetPath Include="DLLs\Runtime\mfc140ud.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>mfc140ud.dll</TargetPath>
+    </ContentWithTargetPath>
+    <None Include="DLLs\Runtime\mfc140ud.dll" />
+    <ContentWithTargetPath Include="DLLs\Runtime\msvcp140d.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>msvcp140d.dll</TargetPath>
+    </ContentWithTargetPath>
+    <None Include="DLLs\Runtime\msvcp140d.dll" />
+    <ContentWithTargetPath Include="DLLs\Runtime\ucrtbased.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>ucrtbased.dll</TargetPath>
+    </ContentWithTargetPath>
+    <None Include="DLLs\Runtime\ucrtbased.dll" />
+    <ContentWithTargetPath Include="DLLs\Runtime\vcruntime140_1d.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>vcruntime140_1d.dll</TargetPath>
+    </ContentWithTargetPath>
+    <None Include="DLLs\Runtime\vcruntime140_1d.dll" />
+    <ContentWithTargetPath Include="DLLs\Runtime\vcruntime140d.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>vcruntime140d.dll</TargetPath>
+    </ContentWithTargetPath>
+    <None Include="DLLs\Runtime\vcruntime140d.dll" />
+    <Content Include="Libraries\ffmpeg.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="log4net">
+      <Version>2.0.15</Version>
+    </PackageReference>
+    <PackageReference Include="MessagePack">
+      <Version>2.5.64-alpha</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Windows.SDK.Contracts">
+      <Version>10.0.25262-preview</Version>
+    </PackageReference>
+    <PackageReference Include="NAudio">
+      <Version>2.1.0</Version>
+    </PackageReference>
+    <PackageReference Include="NAudio.Lame">
+      <Version>2.0.1</Version>
+    </PackageReference>
+    <PackageReference Include="OpenCvSharp4">
+      <Version>4.6.0.20220608</Version>
+    </PackageReference>
+    <PackageReference Include="SharpDX">
+      <Version>4.2.0</Version>
+    </PackageReference>
+    <PackageReference Include="SharpDX.Direct3D11">
+      <Version>4.2.0</Version>
+    </PackageReference>
+    <PackageReference Include="SharpDX.DXGI">
+      <Version>4.2.0</Version>
+    </PackageReference>
+    <PackageReference Include="System.Drawing.Common">
+      <Version>7.0.0</Version>
+    </PackageReference>
+    <PackageReference Include="System.Numerics.Vectors">
+      <Version>4.5.0</Version>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

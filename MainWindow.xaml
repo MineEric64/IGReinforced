@@ -5,8 +5,48 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:IGReinforced"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
-        
+        Title="IGReinforced" Height="450" Width="800">
+    <Window.Resources>
+        <Style x:Key="ToggleStyle1" TargetType="{x:Type local:Toggle}">
+
+            <Setter Property="MaxHeight" Value="30"/>
+            <Setter Property="MaxWidth" Value="60"/>
+            <Setter Property="MinHeight" Value="30"/>
+            <Setter Property="MinWidth" Value="60"/>
+
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type local:Toggle}">
+                        <Border x:Name="bk" Background="#FFCCCCCC" CornerRadius="15">
+                            <Ellipse x:Name="ep" Fill="#FFFFFF" HorizontalAlignment="Left" Margin="2" Width="26">
+                                <Ellipse.Effect>
+                                    <DropShadowEffect ShadowDepth="2" Opacity="0.2"/>
+                                </Ellipse.Effect>
+                            </Ellipse>
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="ep" Property="HorizontalAlignment" Value="Right"/>
+                                <Setter Property="Background" TargetName="bk" Value="#FF007BFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <Grid Background="#FFF2F2F2">
+        <Image HorizontalAlignment="Center" Height="362" VerticalAlignment="Top" Width="380" Source="/Resources/REINFORCED _alpha.png" Margin="0,-46,0,0"/>
+        <local:Toggle x:Name="replayOnoff" Style="{DynamicResource ToggleStyle1}" Margin="318,267,388,104" Checked="replayOnoff_Checked" Unchecked="replayOnoff_Unchecked" IsTabStop="False" Focusable="False"/>
+        <Label Content="Replay" HorizontalAlignment="Left" Margin="395,268,0,0" VerticalAlignment="Top" FontFamily="Noto Sans KR" FontSize="18" Foreground="Black"/>
+        <TextBox x:Name="hotkeyBox" HorizontalAlignment="Center" Margin="0,350,0,0" TextWrapping="Wrap" Text=" Alt + F10" VerticalAlignment="Top" Width="120" FontFamily="Noto Sans KR" IsEnabled="False">
+            <TextBox.Resources>
+                <Style TargetType="{x:Type Border}">
+                    <Setter Property="CornerRadius" Value="7"/>
+                </Style>
+            </TextBox.Resources>
+        </TextBox>
+        <Label Content="Hotkey" HorizontalAlignment="Left" Margin="335,329,0,0" VerticalAlignment="Top" FontFamily="Noto Sans KR" FontSize="8" Foreground="Black"/>
     </Grid>
 </Window>
