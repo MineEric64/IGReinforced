@@ -19,6 +19,7 @@ using System.Windows.Shapes;
 using log4net;
 
 using IGReinforced.Extensions;
+using IGReinforced.Recording.Highlights;
 using IGReinforced.Recording.Types;
 using IGReinforced.Recording.Video;
 
@@ -118,7 +119,13 @@ namespace IGReinforced
 
             if (IsAllDown(keys) && keys.Length > 0 && Rescreen.IsRecording)
             {
-                
+                int videoLength = (int)HighlightManager.Flow.Elapsed.TotalSeconds;
+                string info = Rescreen.GetRecordedInfo();
+
+                HighlightManager.AddHighlight();
+
+                log.Info($"Highlight ({videoLength}s) Recorded. Info : {info}");
+                Debug.WriteLine(HighlightManager.HighlightPaths.Last());
             }
         }
     }

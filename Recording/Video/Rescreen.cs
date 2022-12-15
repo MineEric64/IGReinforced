@@ -15,6 +15,7 @@ using OpenCvSharp;
 
 using IGReinforced.Extensions;
 using IGReinforced.Recording.Audio.Wasapi;
+using IGReinforced.Recording.Highlights;
 using IGReinforced.Recording.Types;
 using IGReinforced.Recording.Video;
 using IGReinforced.Recording.Video.WGC;
@@ -60,6 +61,7 @@ namespace IGReinforced.Recording.Video
         public static void Start()
         {
             _flow.Reset();
+            HighlightManager.Flow.Reset();
 
             Settings.Bitrate = GetBitrateInfo().Bps;
 
@@ -101,6 +103,8 @@ namespace IGReinforced.Recording.Video
             WasapiCapture.Record();
 
             _flow.Start();
+            HighlightManager.Flow.Start();
+
             IsRecording = true;
         }
 
@@ -127,6 +131,7 @@ namespace IGReinforced.Recording.Video
             WasapiCapture.DataAvailable -= AudioRefreshed;
 
             _flow.Stop();
+            HighlightManager.Flow.Stop();
 
             _deltaResSw.Stop();
             _deltaResSw.Reset();
@@ -135,7 +140,8 @@ namespace IGReinforced.Recording.Video
             _delayPerFrameSw.Reset();
 
             Debug.WriteLine($"[Info] Recorded,\n{GetRecordedInfo()}");
-            
+
+            ClearAllBuffer();
             IsRecording = false;
         }
 
@@ -172,6 +178,15 @@ namespace IGReinforced.Recording.Video
             else info = Bitrate1080;
 
             return info;
+        }
+
+        public static void ClearAllBuffer()
+        {
+            int screenLength = ScreenQueue.Count;
+            int audioLength = AudioQueue.Count;
+
+            for (int i = 0; i < screenLength; i++) ScreenQueue.TryDequeue(out _);
+            for (int i = 0; i < audioLength; i++) AudioQueue.TryDequeue(out _);
         }
 
         //For Debugging Methods for Rescreen!!!
