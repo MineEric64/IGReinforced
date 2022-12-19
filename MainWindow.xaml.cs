@@ -46,6 +46,9 @@ namespace IGReinforced
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             _timer = new Timer(Timer_Tick, null, 0, 100);
+
+            HighlightManager.LocalPath = $"{AppContext.BaseDirectory}Highlights";
+            HighlightManager.FFmpegExecutablePath = $@"{AppContext.BaseDirectory}Libraries\ffmpeg.exe";
         }
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -123,9 +126,10 @@ namespace IGReinforced
                 string info = Rescreen.GetRecordedInfo();
 
                 HighlightManager.AddHighlight();
+                HighlightManager.ConvertToVideo(HighlightManager.TempoaryPaths.Last());
 
                 log.Info($"Highlight ({videoLength}s) Recorded. Info : {info}");
-                Debug.WriteLine(HighlightManager.HighlightPaths.Last());
+                MessageBox.Show("HAHA");
             }
         }
     }

@@ -31,6 +31,7 @@ namespace IGReinforced.Recording.Video
 
         public static ConcurrentQueue<Buffered> ScreenQueue { get; set; } = new ConcurrentQueue<Buffered>();
         public static ConcurrentQueue<Buffered> AudioQueue { get; set; } = new ConcurrentQueue<Buffered>();
+        public static ConcurrentQueue<Buffered> MicQueue { get; set; } = new ConcurrentQueue<Buffered>();
 
         internal static List<int> _deltaRess = new List<int>();
         internal static List<int> _delayPerFrame = new List<int>();
@@ -97,9 +98,14 @@ namespace IGReinforced.Recording.Video
                     break;
             }
 
-            if (!WasapiCapture.IsInitialized) WasapiCapture.Initialize();
+            if (!WasapiCapture.IsInitialized)
+            {
+                WasapiCapture.InitializeIn();
+                WasapiCapture.InitializeOut();
+            }
 
-            WasapiCapture.DataAvailable += AudioRefreshed;
+            WasapiCapture.AudioDataAvailable += AudioRefreshed;
+            WasapiCapture.MicDataAvailable += MicRefreshed;
             WasapiCapture.Record();
 
             _flow.Start();
@@ -128,7 +134,8 @@ namespace IGReinforced.Recording.Video
             }
 
             WasapiCapture.Stop();
-            WasapiCapture.DataAvailable -= AudioRefreshed;
+            WasapiCapture.AudioDataAvailable -= AudioRefreshed;
+            WasapiCapture.MicDataAvailable -= MicRefreshed;
 
             _flow.Stop();
             HighlightManager.Flow.Stop();
@@ -168,6 +175,20 @@ namespace IGReinforced.Recording.Video
             }
         }
 
+        private static void MicRefreshed(object sender, byte[] buffer)
+        {
+            const bool DISCARD_IF_EMPTY = false;
+
+            if (!DISCARD_IF_EMPTY || buffer.Any(x => x != 0))
+            {
+                byte[] compressed = buffer.Compress(); //byte[] -> compressed byte[]
+
+                if (Elapsed.TotalSeconds > ReplayLength)
+                    MicQueue.TryDequeue(out _);
+                MicQueue.Enqueue(new Buffered(compressed));
+            }
+        }
+
         public static BitrateInfo GetBitrateInfo()
         {
             BitrateInfo info = null;
@@ -184,9 +205,11 @@ namespace IGReinforced.Recording.Video
         {
             int screenLength = ScreenQueue.Count;
             int audioLength = AudioQueue.Count;
+            int micLength = MicQueue.Count;
 
             for (int i = 0; i < screenLength; i++) ScreenQueue.TryDequeue(out _);
             for (int i = 0; i < audioLength; i++) AudioQueue.TryDequeue(out _);
+            for (int i = 0; i < micLength; i++) MicQueue.TryDequeue(out _);
         }
 
         //For Debugging Methods for Rescreen!!!

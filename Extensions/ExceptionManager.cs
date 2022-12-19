@@ -54,7 +54,7 @@ namespace IGReinforced.Extensions
             if (exception.InnerException != null)
             {
                 message.Append(" ---> ");
-                message.AppendLine(exception.InnerException.ToString());
+                message.AppendLine(exception.InnerException.ToCleanString());
 
                 message.Append("--- End of inner exception stack trace ---");
             }

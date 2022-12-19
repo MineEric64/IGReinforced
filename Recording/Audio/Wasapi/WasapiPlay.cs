@@ -32,7 +32,7 @@ namespace IGReinforced.Recording.Audio.Wasapi
         public static bool IsPaused { get; private set; } = false;
 
         public static void Initialize() {
-            MMDevice device = WasapiCapture.DefaultMMDevice;
+            MMDevice device = WasapiCapture.DefaultMMDeviceOut;
 
             if (device != null)
             {
@@ -78,7 +78,7 @@ namespace IGReinforced.Recording.Audio.Wasapi
 
         public static bool Play()
         {
-            MMDevice device = WasapiCapture.DefaultMMDevice;
+            MMDevice device = WasapiCapture.DefaultMMDeviceOut;
 
             if (!IsFinalReady) return false;
             if (_prevDeviceId != device.ID) Initialize();
