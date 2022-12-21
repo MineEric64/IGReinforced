@@ -86,6 +86,7 @@
     <Compile Include="Extensions\ExceptionManager.cs" />
     <Compile Include="Extensions\KeyManager.cs" />
     <Compile Include="Extensions\NetworkManager.cs" />
+    <Compile Include="Extensions\ProcessHelper.cs" />
     <Compile Include="Extensions\Timestamp.cs" />
     <Compile Include="Recording\Audio\Wasapi\WasapiCapture.cs" />
     <Compile Include="Recording\Audio\Wasapi\WasapiPlay.cs" />

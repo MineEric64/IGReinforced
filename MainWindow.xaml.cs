@@ -48,7 +48,7 @@ namespace IGReinforced
             _timer = new Timer(Timer_Tick, null, 0, 100);
 
             HighlightManager.LocalPath = $"{AppContext.BaseDirectory}Highlights";
-            HighlightManager.FFmpegExecutablePath = $@"{AppContext.BaseDirectory}Libraries\ffmpeg.exe";
+            HighlightManager.FFmpegExecutablePath = $"{AppContext.BaseDirectory}Libraries";
         }
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -88,12 +88,12 @@ namespace IGReinforced
             Rescreen.Stop();
         }
 
-        private void Timer_Tick(object state)
+        private async void Timer_Tick(object state)
         {
-            Key[] GetKeys()
+            #region Key Methods
+            Key[] GetKeys(string text)
             {
                 List<Key> keyList = new List<Key>();
-                string text = Dispatcher.Invoke(() => hotkeyBox.Text);
                 string[] texts = text.Split(new string[] { "+" }, StringSplitOptions.RemoveEmptyEntries);
 
                 foreach (string s in texts)
@@ -108,6 +108,14 @@ namespace IGReinforced
                     {
                         keyList.Add(Key.LeftAlt);
                     }
+                    else if (s == "Ctrl")
+                    {
+                        keyList.Add(Key.LeftCtrl);
+                    }
+                    else if (s == "Shift")
+                    {
+                        keyList.Add(Key.LeftShift);
+                    }
                 }
 
                 return keyList.ToArray();
@@ -117,8 +125,9 @@ namespace IGReinforced
                 foreach (Key key in keys2) if (!KeyManager.IsDown(key)) return false;
                 return true;
             }
-
-            Key[] keys = GetKeys();
+            #endregion
+            #region Add Highlight (Default: Alt + F10)
+            Key[] keys = GetKeys(Dispatcher.Invoke(() => hotkeyBox.Text));
 
             if (IsAllDown(keys) && keys.Length > 0 && Rescreen.IsRecording)
             {
@@ -126,11 +135,26 @@ namespace IGReinforced
                 string info = Rescreen.GetRecordedInfo();
 
                 HighlightManager.AddHighlight();
-                HighlightManager.ConvertToVideo(HighlightManager.TempoaryPaths.Last());
-
                 log.Info($"Highlight ({videoLength}s) Recorded. Info : {info}");
-                MessageBox.Show("HAHA");
             }
+            #endregion
+            #region Save Highlight To Video (Default: Alt + F11)
+            Key[] k = GetKeys("Alt + F11"); //tempoary
+
+            if (IsAllDown(k) && k.Length > 0)
+            {
+                foreach (string tempoaryPath in HighlightManager.TempoaryPaths)
+                {
+                    string path = await HighlightManager.ConvertToVideoAsync(tempoaryPath);
+                    log.Info($"Saved Video to {path}.");
+                }
+
+                MessageBox.Show($"Saved {HighlightManager.TempoaryPaths.Count} Highlight(s)!", "IGReinforced", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                HighlightManager.TempoaryPaths.Clear();
+                GC.Collect();
+            }
+            #endregion
         }
     }
 }

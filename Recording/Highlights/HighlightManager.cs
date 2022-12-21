@@ -4,10 +4,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
+using log4net;
 
 using MessagePack;
 
@@ -38,6 +41,8 @@ namespace IGReinforced.Recording.Highlights
 
         public static List<string> TempoaryPaths { get; private set; } = new List<string>();
         public static Stopwatch Flow { get; private set; } = new Stopwatch();
+
+        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         public static Highlight FromRescreen()
         {
@@ -74,13 +79,7 @@ namespace IGReinforced.Recording.Highlights
             return $"{Path.GetTempPath()}{Guid.NewGuid()}.{extension}";
         }
 
-        public static void ConvertAllToVideo()
-        {
-            foreach (string tempoaryPath in TempoaryPaths) ConvertToVideo(tempoaryPath);
-            TempoaryPaths.Clear();
-        }
-
-        public static string ConvertToVideo(string tempoaryPath)
+        public static async Task<string> ConvertToVideoAsync(string tempoaryPath)
         {
             if (!File.Exists(tempoaryPath)) return string.Empty;
 
@@ -88,9 +87,9 @@ namespace IGReinforced.Recording.Highlights
             Highlight highlight = MessagePackSerializer.Deserialize<Highlight>(buffer, BitmapConverter.LZ4_OPTIONS);
             string fileName = GetHighlightName(highlight, "mp4");
 
-            string videoPath = ProcessVideo(highlight);
-            string audioPath = ProcessAudio(highlight);
-            string outPath = Combine(videoPath, audioPath, fileName);
+            string videoPath = await Task.Run(() => ProcessVideo(highlight));
+            string audioPath = await ProcessAudioAsync(highlight);
+            string outPath = await CombineAsync(videoPath, audioPath, fileName);
 
             File.Delete(videoPath);
             File.Delete(audioPath);
@@ -147,14 +146,14 @@ namespace IGReinforced.Recording.Highlights
             return path;
         }
 
-        private static string ProcessAudio(Highlight highlight)
+        private static async Task<string> ProcessAudioAsync(Highlight highlight)
         {
             string path = GetTempFile("mp3");
             byte[] buffer = MergeAudio(highlight);
 
             using (var writer = new LameMP3FileWriter(path, WasapiCapture.DeviceOutWaveFormat, 128))
             {
-                writer.Write(buffer, 0, buffer.Length);
+                await writer.WriteAsync(buffer, 0, buffer.Length);
             }
 
             return path;
@@ -224,11 +223,36 @@ namespace IGReinforced.Recording.Highlights
             return buffer;
         }
 
-        private static string Combine(string inVideoPath, string inAudioPath, string outFileName)
+        private static async Task<string> CombineAsync(string inVideoPath, string inAudioPath, string outFileName)
         {
             string outPath = Path.Combine(LocalPath, outFileName);
+            string args = $"-i \"{inVideoPath}\" -i \"{inAudioPath}\" -preset ultrafast -tune fastdecode -shortest \"{outPath}\"";
+            ProcessStartInfo startInfo = new ProcessStartInfo
+            {
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden,
+                FileName = "ffmpeg.exe",
+                WorkingDirectory = FFmpegExecutablePath,
+                Arguments = args
+            };
 
+            if (File.Exists(outPath))
+            {
+                File.Delete(outPath);
+                log.Info($"{outFileName} has overwritten because of same file name.");
+            }
+            if (!Directory.Exists(LocalPath))
+            {
+                Directory.CreateDirectory(LocalPath);
 
+                var info = new DirectoryInfo(LocalPath);
+                log.Info($"{info.Name} Directory has created.");
+            }
+
+            using (Process process = Process.Start(startInfo))
+            {
+                await process.WaitForExitAsync();
+            }
 
             return outPath;
         }
