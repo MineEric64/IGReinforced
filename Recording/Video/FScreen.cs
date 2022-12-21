@@ -27,6 +27,7 @@ using IGReinforced.Recording.Video.WGC;
 
 using D3D11Device = SharpDX.Direct3D11.Device;
 using Encoder = IGReinforced.Recording.Video.NvEncoder.Encoder;
+using Windows.Storage.Streams;
 
 namespace IGReinforced.Recording.Video
 {
@@ -133,6 +134,7 @@ namespace IGReinforced.Recording.Video
                     var startDate = DateTime.MinValue;
                     int needElapsed = 0;
                     int deltaRes = 0;
+                    int timeoutInMilliseconds = Rescreen.Settings.Fps > 0 ? Rescreen.DelayPerFrame : 5;
 
                     Rescreen._delayPerFrameSw.Start();
                     
@@ -140,15 +142,22 @@ namespace IGReinforced.Recording.Video
                     {
                         try
                         {
+                            void WhenTimeout(int milliseconds)
+                            {
+                                byte[] buffer = Buffered.TimeoutBuffer;
+                                ScreenRefreshed?.Invoke(null, buffer);
+                            }
+
                             SharpDX.DXGI.Resource screenResource;
                             OutputDuplicateFrameInformation duplicateFrameInformation;
 
                             // Try to get duplicated frame within given time is ms
-                            var result = duplicatedOutput.TryAcquireNextFrame(Rescreen.Settings.Fps > 0 ? Rescreen.DelayPerFrame : 5, out duplicateFrameInformation, out screenResource);
+                            var result = duplicatedOutput.TryAcquireNextFrame(timeoutInMilliseconds, out duplicateFrameInformation, out screenResource);
                             var delta = DateTime.Now - startDate;
 
-                            if (result.Failure)
+                            if (result.Failure || !result.Success)
                             {
+                                WhenTimeout(timeoutInMilliseconds);
                                 continue;
                             }
                             else if (startDate == DateTime.MinValue)
@@ -157,13 +166,16 @@ namespace IGReinforced.Recording.Video
                             }
                             else if (Rescreen.DelayPerFrame > 0 && needElapsed - deltaRes > (int)delta.TotalMilliseconds)
                             {
-                                Thread.Sleep(needElapsed - deltaRes - (int)delta.TotalMilliseconds);
+                                int milliseconds = needElapsed - deltaRes - (int)delta.TotalMilliseconds;
+
+                                WhenTimeout(milliseconds);
+                                Thread.Sleep(milliseconds);
                             }
 
                             Rescreen._deltaResSw.Reset();
                             Rescreen._deltaResSw.Start();
 
-                            needElapsed += Rescreen.DelayPerFrame;
+                            needElapsed += timeoutInMilliseconds;
 
                             // copy resource into memory that can be accessed by the CPU
                             using (var screenTexture2D = screenResource.QueryInterface<Texture2D>())

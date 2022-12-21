@@ -69,6 +69,7 @@ namespace IGReinforced.Recording.Audio.Wasapi
         /// DataAvailable에서 소리가 없을 경우 사용
         /// </summary>
         private static Stopwatch _sw = new Stopwatch();
+        private static Stopwatch _swMic = new Stopwatch();
 
         public static event EventHandler<byte[]> AudioDataAvailable;
         public static event EventHandler<byte[]> MicDataAvailable;
@@ -133,6 +134,7 @@ namespace IGReinforced.Recording.Audio.Wasapi
             _captureMic?.StartRecording();
 
             _sw.Start();
+            _swMic.Start();
 
             return true;
         }
@@ -152,18 +154,17 @@ namespace IGReinforced.Recording.Audio.Wasapi
             
             IsInitialized = false;
 
-            _sw.Stop();
             _sw.Reset();
+            _swMic.Reset();
         }
 
-        private static byte[] ProcessBuffer(WaveInEventArgs e)
+        private static byte[] ProcessBuffer(WaveInEventArgs e, int milliseconds)
         {
             byte[] buffer = new byte[e.BytesRecorded];
 
             if (e.BytesRecorded == 0)
             {
-                int bytesPerMillisecond = WaveFormat.AverageBytesPerSecond / 1000;
-                int bytesRecorded = (int)_sw.ElapsedMilliseconds * bytesPerMillisecond;
+                int bytesRecorded = ConvertLatencyToByteSize(milliseconds);
 
                 buffer = new byte[bytesRecorded];
             }
@@ -179,7 +180,9 @@ namespace IGReinforced.Recording.Audio.Wasapi
         {
             _sw.Stop();
 
-            byte[] buffer = ProcessBuffer(e);
+            int milliseconds = (int)_sw.ElapsedMilliseconds;
+            byte[] buffer = ProcessBuffer(e, milliseconds);
+
             AudioDataAvailable?.Invoke(sender, buffer);
 
             _sw.Restart();
@@ -187,12 +190,39 @@ namespace IGReinforced.Recording.Audio.Wasapi
 
         private static void WhenMicDataAvailable(object sender, WaveInEventArgs e)
         {
-            _sw.Stop();
+            _swMic.Stop();
 
-            byte[] buffer = ProcessBuffer(e);
+            int milliseconds = (int)_swMic.ElapsedMilliseconds;
+            byte[] buffer = ProcessBuffer(e, milliseconds);
+
             MicDataAvailable?.Invoke(sender, buffer);
 
-            _sw.Restart();
+            _swMic.Restart();
+        }
+
+        public static int ConvertLatencyToByteSize(int milliseconds)
+        {
+            WaveFormat wf;
+
+            wf = DeviceOutWaveFormat;
+            //wf = WaveFormat;
+
+            //return wf.ConvertLatencyToByteSize(milliseconds);
+
+            int bytesPerMillisecond = wf.AverageBytesPerSecond / 1000;
+            int bytesRecorded = milliseconds * bytesPerMillisecond;
+
+            return bytesRecorded;
+        }
+
+        /// <summary>
+        /// Byte[] Size -> Latency (Milliseconds)
+        /// </summary>
+        /// <param name="size">array's size (length)</param>
+        /// <returns></returns>
+        public static int ConvertByteSizeToLatency(int size)
+        {
+            return 1000 * size / DeviceOutWaveFormat.AverageBytesPerSecond;
         }
     }
 }

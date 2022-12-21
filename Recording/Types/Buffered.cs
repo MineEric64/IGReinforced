@@ -18,6 +18,12 @@ namespace IGReinforced.Recording.Types
         [Key(1)]
         public DateTime Time { get; set; }
 
+        [IgnoreMember()]
+        public static byte[] TimeoutBuffer => new byte[1] { 238 };
+
+        [IgnoreMember()]
+        public static Buffered Timeout => new Buffered(TimeoutBuffer);
+
         public Buffered(byte[] buffer)
         {
             Buffer = buffer;
@@ -28,6 +34,16 @@ namespace IGReinforced.Recording.Types
         {
             Buffer = buffer;
             Time = DateTime.Now;
+        }
+
+        public bool IsTimeout()
+        {
+            return IsTimeout(Buffer);
+        }
+
+        public static bool IsTimeout(byte[] buffer)
+        {
+            return buffer.Length == 1 && buffer[0] == 238;
         }
     }
 }

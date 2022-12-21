@@ -27,7 +27,7 @@ namespace IGReinforced.Recording.Video
             Fps = 60,
             Encoding = EncodingType.Nvenc,
             Bitrate = BitrateInfo.GetBitrateFromMbps(20),
-            VideoType = CaptureVideoType.DD
+            VideoType = CaptureVideoType.WGC//CaptureVideoType.DD
         };
     }
 }

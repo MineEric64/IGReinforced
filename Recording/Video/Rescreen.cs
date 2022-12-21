@@ -66,47 +66,55 @@ namespace IGReinforced.Recording.Video
 
             Settings.Bitrate = GetBitrateInfo().Bps;
 
-            switch (Settings.VideoType)
+            void InitializeVideo() //300ms elapsed
             {
-                case CaptureVideoType.DD:
-                    CaptureSupports.SupportsDesktopDuplication();
+                switch (Settings.VideoType)
+                {
+                    case CaptureVideoType.DD:
+                        CaptureSupports.SupportsDesktopDuplication();
 
-                    if (!Supports.DesktopDuplication)
-                    {
-                        MessageBox.Show("The screen can't be captured when using DXGI Desktop Duplication.\nPlease use another capture method.",
-                        "IGReinforced : Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
+                        if (!Supports.DesktopDuplication)
+                        {
+                            MessageBox.Show("The screen can't be captured when using DXGI Desktop Duplication.\nPlease use another capture method.",
+                            "IGReinforced : Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
+                        }
 
-                    _raw.ScreenRefreshed += ScreenRefreshed;
-                    _raw.Start();
+                        _raw.ScreenRefreshed += ScreenRefreshed;
+                        _raw.Start();
 
-                    break;
+                        break;
 
-                case CaptureVideoType.WGC:
-                    CaptureSupports.SupportsWGC();
+                    case CaptureVideoType.WGC:
+                        CaptureSupports.SupportsWGC();
 
-                    if (!Supports.WGC)
-                    {
-                        MessageBox.Show("The screen can't be captured when using Windows.Graphics.Capture.\nPlease use another capture method.",
-                        "IGReinforced : Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-                    WGCHelper.ScreenRefreshed += ScreenRefreshed;
-                    WGCHelper.StartSelectedMonitorCapture();
+                        if (!Supports.WGC)
+                        {
+                            MessageBox.Show("The screen can't be captured when using Windows.Graphics.Capture.\nPlease use another capture method.",
+                            "IGReinforced : Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
+                        }
+                        WGCHelper.ScreenRefreshed += ScreenRefreshed;
+                        WGCHelper.StartSelectedMonitorCapture();
 
-                    break;
+                        break;
+                }
+            }
+            void InitializeAudio() //200ms elapsed
+            {
+                if (!WasapiCapture.IsInitialized)
+                {
+                    WasapiCapture.InitializeIn();
+                    WasapiCapture.InitializeOut();
+                }
+
+                WasapiCapture.AudioDataAvailable += AudioRefreshed;
+                WasapiCapture.MicDataAvailable += MicRefreshed;
+                WasapiCapture.Record();
             }
 
-            if (!WasapiCapture.IsInitialized)
-            {
-                WasapiCapture.InitializeIn();
-                WasapiCapture.InitializeOut();
-            }
-
-            WasapiCapture.AudioDataAvailable += AudioRefreshed;
-            WasapiCapture.MicDataAvailable += MicRefreshed;
-            WasapiCapture.Record();
+            Task.Run(InitializeVideo);
+            Task.Run(InitializeAudio);
 
             _flow.Start();
             HighlightManager.Flow.Start();
@@ -140,13 +148,8 @@ namespace IGReinforced.Recording.Video
             _flow.Stop();
             HighlightManager.Flow.Stop();
 
-            _deltaResSw.Stop();
             _deltaResSw.Reset();
-
-            _delayPerFrameSw.Stop();
             _delayPerFrameSw.Reset();
-
-            Debug.WriteLine($"[Info] Recorded,\n{GetRecordedInfo()}");
 
             ClearAllBuffer();
             IsRecording = false;
@@ -158,6 +161,7 @@ namespace IGReinforced.Recording.Video
 
             if (Elapsed.TotalSeconds > ReplayLength)
                 ScreenQueue.TryDequeue(out _);
+
             ScreenQueue.Enqueue(new Buffered(compressed));
         }
 
