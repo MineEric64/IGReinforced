@@ -214,6 +214,14 @@ namespace IGReinforced.Recording.Video.WGC
 
         private static void ProcessFrame(Direct3D11CaptureFrame frame)
         {
+            if (frame == null)
+            {
+                log.Error("Frame is null. Can't process the frame, returned");
+                MessageBox.Show("Can't process the frame with Windows.Graphics.Capture. Try again later.", "IGReinforced", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                return;
+            }
+
             using (Texture2D surfaceTexture = Direct3D11Helper.CreateSharpDXTexture2D(frame.Surface))
             {
                 _sharpDevice.ImmediateContext.CopyResource(surfaceTexture, _frameTexture);

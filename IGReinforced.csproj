@@ -99,6 +99,7 @@
     <Compile Include="Recording\Video\FScreen.cs" />
     <Compile Include="Recording\Types\CaptureVideoType.cs" />
     <Compile Include="Recording\Types\GPUSelect.cs" />
+    <Compile Include="Recording\Video\NvColorSpace\NvColorSpace.cs" />
     <Compile Include="Recording\Video\NvEncoder\Encoder.cs" />
     <Compile Include="Recording\Video\NvEncoder\Lib.cs" />
     <Compile Include="Recording\Video\NvPipe\Decoder.cs" />
@@ -206,6 +207,11 @@
     <Content Include="Libraries\ffmpeg.exe">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <ContentWithTargetPath Include="DLLs\NvColorSpace.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>NvColorSpace.dll</TargetPath>
+    </ContentWithTargetPath>
+    <None Include="DLLs\NvColorSpace.dll" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="log4net">

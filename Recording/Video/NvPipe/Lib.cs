@@ -16,7 +16,6 @@ namespace IGReinforced.Recording.Video.NvPipe
     public enum Format
     {
         RGBA32,
-        BGRA32, //Not supported yet
         UINT4,
         UINT8,
         UINT16,

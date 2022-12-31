@@ -15,6 +15,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 using log4net;
 
@@ -22,6 +23,7 @@ using IGReinforced.Extensions;
 using IGReinforced.Recording.Highlights;
 using IGReinforced.Recording.Types;
 using IGReinforced.Recording.Video;
+using System.Media;
 
 namespace IGReinforced
 {
@@ -32,6 +34,7 @@ namespace IGReinforced
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         private Timer _timer;
+        public static Dispatcher MyDispatcher { get; private set; } = null;
 
         public MainWindow()
         {
@@ -46,9 +49,16 @@ namespace IGReinforced
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             _timer = new Timer(Timer_Tick, null, 0, 100);
+            MyDispatcher = Dispatcher;
 
             HighlightManager.LocalPath = $"{AppContext.BaseDirectory}Highlights";
             HighlightManager.FFmpegExecutablePath = $"{AppContext.BaseDirectory}Libraries";
+            
+            if (!Rescreen.SupportsNvenc())
+            {
+                MessageBox.Show("Nvidia Graphics is not detected, or Nvenc is not supported.\nIGReinforced can't be used. The application will be exited.", "IGReinforced : Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MainWindow_Closing(null, null);
+            }
         }
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -131,28 +141,24 @@ namespace IGReinforced
 
             if (IsAllDown(keys) && keys.Length > 0 && Rescreen.IsRecording)
             {
-                int videoLength = (int)HighlightManager.Flow.Elapsed.TotalSeconds;
+                int time = (int)HighlightManager.Flow.Elapsed.TotalSeconds;
+                int videoLength = Math.Min(time, Rescreen.ReplayLength);
                 string info = Rescreen.GetRecordedInfo();
 
                 HighlightManager.AddHighlight();
-                log.Info($"Highlight ({videoLength}s) Recorded. Info : {info}");
-            }
-            #endregion
-            #region Save Highlight To Video (Default: Alt + F11)
-            Key[] k = GetKeys("Alt + F11"); //tempoary
+                log.Info($"Highlight ({videoLength}s) Recorded at {time}s. Info : {info}");
 
-            if (IsAllDown(k) && k.Length > 0)
-            {
+                #region Save Highlight To Video
                 foreach (string tempoaryPath in HighlightManager.TempoaryPaths)
                 {
                     string path = await HighlightManager.ConvertToVideoAsync(tempoaryPath);
                     log.Info($"Saved Video to {path}.");
                 }
 
-                MessageBox.Show($"Saved {HighlightManager.TempoaryPaths.Count} Highlight(s)!", "IGReinforced", MessageBoxButton.OK, MessageBoxImage.Information);
-
+                SystemSounds.Exclamation.Play();
                 HighlightManager.TempoaryPaths.Clear();
                 GC.Collect();
+                #endregion
             }
             #endregion
         }

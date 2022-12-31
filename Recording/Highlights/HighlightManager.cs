@@ -26,11 +26,7 @@ using IGReinforced.Extensions;
 using IGReinforced.Recording.Audio.Wasapi;
 using IGReinforced.Recording.Types;
 using IGReinforced.Recording.Video;
-
-using NvDecoder = IGReinforced.Recording.Video.NvPipe.Decoder;
-using NvPipeCodec = IGReinforced.Recording.Video.NvPipe.Codec;
-using NvPipeCompression = IGReinforced.Recording.Video.NvPipe.Compression;
-using NvPipeFormat = IGReinforced.Recording.Video.NvPipe.Format;
+using IGReinforced.Recording.Video.NvColorSpace;
 
 namespace IGReinforced.Recording.Highlights
 {
@@ -112,21 +108,34 @@ namespace IGReinforced.Recording.Highlights
 
         private static string ProcessVideo(Highlight highlight)
         {
+            Mat ConvertLegacy(IntPtr ptr, int size, int width, int height)
+            {
+                Mat mat = new Mat(height, width, MatType.CV_8UC4, ptr);
+                Mat mat2 = mat.CvtColor(ColorConversionCodes.RGBA2BGRA);
+
+                mat.Dispose();
+                return mat2;
+            }
+            Mat ConvertNvColorSpace(IntPtr ptr, int size, int width, int height, out IntPtr bgra)
+            {
+                bgra = Marshal.AllocHGlobal(size);
+                int status = NvColorSpace.RGBA32ToBGRA32(ptr, bgra, width, height);
+                Mat mat = new Mat(height, width, MatType.CV_8UC4, bgra);
+
+                return mat;
+            }
+
             string path = GetTempFile("mp4");
 
             VideoWriter writer = new VideoWriter(path, FourCC.H265, Rescreen.FpsIfUnfixed60, Rescreen.ScreenSize.ToCvSize());
-            NvDecoder decoder = new NvDecoder(Rescreen.ScreenSize.Width, Rescreen.ScreenSize.Height, NvPipeCodec.H264, NvPipeFormat.RGBA32); //not support BGRA32 yet
 
-            decoder.onDecoded += (s, e) =>
+            Rescreen.IsSaving = true;
+            Rescreen.OnDecoded = (e) =>
             {
-                IntPtr ptr = e.Item1;
-                int size = e.Item2;
-                Mat mat = new Mat(decoder.height, decoder.width, MatType.CV_8UC4, ptr);
-                Mat mat2 = mat.CvtColor(ColorConversionCodes.RGBA2BGRA);
+                Mat mat = ConvertNvColorSpace(e.Item1, e.Item2, Rescreen.Decoder.width, Rescreen.Decoder.height, out IntPtr bgra);
 
-                writer.Write(mat2);
-
-                mat2.Dispose();
+                writer.Write(mat);
+                Marshal.FreeHGlobal(bgra);
                 mat.Dispose();
             };
 
@@ -136,12 +145,13 @@ namespace IGReinforced.Recording.Highlights
                 GCHandle pinnedArray = GCHandle.Alloc(buffer, GCHandleType.Pinned);
                 IntPtr ptr = pinnedArray.AddrOfPinnedObject();
 
-                decoder.Decode(ptr, buffer.Length);
+                Rescreen.Decoder.Decode(ptr, buffer.Length);
                 pinnedArray.Free();
             }
 
             writer.Release();
-            decoder.Close();
+            Rescreen.OnDecoded = null;
+            Rescreen.IsSaving = false;
 
             return path;
         }

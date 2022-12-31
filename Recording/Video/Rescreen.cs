@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 
 using OpenCvSharp;
 
@@ -17,11 +18,13 @@ using IGReinforced.Extensions;
 using IGReinforced.Recording.Audio.Wasapi;
 using IGReinforced.Recording.Highlights;
 using IGReinforced.Recording.Types;
-using IGReinforced.Recording.Video;
 using IGReinforced.Recording.Video.WGC;
 
 using Size = System.Drawing.Size;
 using WasapiCapture = IGReinforced.Recording.Audio.Wasapi.WasapiCapture;
+using NvDecoder = IGReinforced.Recording.Video.NvPipe.Decoder;
+using NvPipeCodec = IGReinforced.Recording.Video.NvPipe.Codec;
+using NvPipeFormat = IGReinforced.Recording.Video.NvPipe.Format;
 
 namespace IGReinforced.Recording.Video
 {
@@ -32,6 +35,9 @@ namespace IGReinforced.Recording.Video
         public static ConcurrentQueue<Buffered> ScreenQueue { get; set; } = new ConcurrentQueue<Buffered>();
         public static ConcurrentQueue<Buffered> AudioQueue { get; set; } = new ConcurrentQueue<Buffered>();
         public static ConcurrentQueue<Buffered> MicQueue { get; set; } = new ConcurrentQueue<Buffered>();
+
+        public static NvDecoder Decoder { get; set; } = null;
+        public static Action<(IntPtr, int)> OnDecoded;
 
         internal static List<int> _deltaRess = new List<int>();
         internal static List<int> _delayPerFrame = new List<int>();
@@ -52,6 +58,7 @@ namespace IGReinforced.Recording.Video
         public static int ReplayLength { get; set; } = 30; //unit: second
 
         public static bool IsRecording { get; private set; } = false;
+        public static bool IsSaving { get; set; } = false;
         public static TimeSpan Elapsed => _flow.Elapsed;
 
         public static void MakeSettings(RescreenSettings settings)
@@ -68,6 +75,15 @@ namespace IGReinforced.Recording.Video
 
             void InitializeVideo() //300ms elapsed
             {
+                Decoder = new NvDecoder(ScreenSize.Width, ScreenSize.Height, NvPipeCodec.H264, NvPipeFormat.RGBA32);
+                Decoder.onDecoded += (s, e) =>
+                {
+                    if (IsSaving)
+                    {
+                        OnDecoded?.Invoke(e);
+                    }
+                };
+
                 switch (Settings.VideoType)
                 {
                     case CaptureVideoType.DD:
@@ -113,8 +129,8 @@ namespace IGReinforced.Recording.Video
                 WasapiCapture.Record();
             }
 
-            Task.Run(InitializeVideo);
-            Task.Run(InitializeAudio);
+            MainWindow.MyDispatcher.BeginInvoke(new Action(() => InitializeVideo()));
+            MainWindow.MyDispatcher.BeginInvoke(new Action(() => InitializeAudio()));
 
             _flow.Start();
             HighlightManager.Flow.Start();
@@ -141,6 +157,9 @@ namespace IGReinforced.Recording.Video
                     break;
             }
 
+            Decoder?.Close();
+            Decoder = null;
+
             WasapiCapture.Stop();
             WasapiCapture.AudioDataAvailable -= AudioRefreshed;
             WasapiCapture.MicDataAvailable -= MicRefreshed;
@@ -160,7 +179,19 @@ namespace IGReinforced.Recording.Video
             byte[] compressed = buffer.Compress(); //byte[] -> compressed byte[]
 
             if (Elapsed.TotalSeconds > ReplayLength)
-                ScreenQueue.TryDequeue(out _);
+            {
+                ScreenQueue.TryDequeue(out var old);
+
+                if (!IsSaving)
+                {
+                    byte[] decompressed = old.Buffer.Decompress();
+                    GCHandle handle = GCHandle.Alloc(decompressed, GCHandleType.Pinned);
+                    IntPtr oldPtr = handle.AddrOfPinnedObject();
+
+                    Decoder.Decode(oldPtr, decompressed.Length);
+                    handle.Free();
+                }
+            }
 
             ScreenQueue.Enqueue(new Buffered(compressed));
         }
@@ -214,6 +245,16 @@ namespace IGReinforced.Recording.Video
             for (int i = 0; i < screenLength; i++) ScreenQueue.TryDequeue(out _);
             for (int i = 0; i < audioLength; i++) AudioQueue.TryDequeue(out _);
             for (int i = 0; i < micLength; i++) MicQueue.TryDequeue(out _);
+
+            _flow.Reset();
+            _flow.Start();
+        }
+
+        public static bool SupportsNvenc()
+        {
+            if (Settings.SelectedMonitor.GPU != GPUSelect.Nvidia) return false;
+            if (!CaptureSupports.SupportsNvenc()) return false;
+            return true;
         }
 
         //For Debugging Methods for Rescreen!!!
